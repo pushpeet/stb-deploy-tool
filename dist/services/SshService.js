@@ -62,16 +62,29 @@ class SshService {
         child.on('exit', (code) => process.exit(code ?? 0));
     }
     async streamLogs() {
-        const { bin, args } = this.withPass('ssh', [...this.sshArgs(), 'journalctl -f']);
-        const child = (0, child_process_1.spawn)(bin, args, { stdio: 'inherit', detached: false });
+        // Use ssh directly with -t (pseudo-TTY) so Ctrl+C propagates to remote journalctl
+        // sshpass is intentionally bypassed here — PTY handles the session
+        const sshArgs = [
+            '-t',
+            '-p', String(this.config.port),
+            '-o', 'ConnectTimeout=5',
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'PasswordAuthentication=yes',
+            `${this.config.user}@${this.config.host}`,
+            'journalctl -f',
+        ];
+        const { bin, args } = this.withPass('ssh', sshArgs);
+        const child = (0, child_process_1.spawn)(bin, args, { stdio: 'inherit', detached: true });
         const cleanup = () => {
             try {
-                // Kill the entire process group to ensure ssh and journalctl both die
-                process.kill(-child.pid, 'SIGTERM');
-            }
-            catch {
                 child.kill('SIGKILL');
             }
+            catch { /* ignore */ }
+            try {
+                process.kill(-child.pid, 'SIGKILL');
+            }
+            catch { /* ignore */ }
+            process.stdout.write('\n');
             process.exit(0);
         };
         process.on('SIGINT', cleanup);
