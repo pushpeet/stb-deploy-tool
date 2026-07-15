@@ -2,6 +2,7 @@ export interface StbConfig {
   host: string;
   user: string;
   port: number;
+  password: string;
   buildCommand: string;
   buildOutput: string;
   remotePath: string;
@@ -29,6 +30,7 @@ export interface DoctorCheck {
 export const DEFAULTS: Omit<StbConfig, 'host'> = {
   user: 'root',
   port: 3333,
+  password: '',
   buildCommand: 'lng dist',
   buildOutput: 'dist/es6',
   remotePath: '/usr/web/irdeto_app',

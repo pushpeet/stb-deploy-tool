@@ -30,13 +30,20 @@ export async function initCommand(): Promise<void> {
     process.exit(1);
   }
 
-  const config = { ...DEFAULTS, host: host.trim() };
+  const { password } = await prompts({
+    type: 'password',
+    name: 'password',
+    message: 'STB Password (leave blank if empty):',
+  });
+
+  const config = { ...DEFAULTS, host: host.trim(), password: password ?? '' };
   writeConfig(config);
 
   log.blank();
   log.success(`Config saved to ${chalk.bold(getConfigPath())}`);
   log.dim(`  host:         ${config.host}`);
   log.dim(`  user:         ${config.user}`);
+  log.dim(`  password:     ${config.password === '' ? '(empty)' : '***'}`);
   log.dim(`  port:         ${config.port}`);
   log.dim(`  buildCommand: ${config.buildCommand}`);
   log.dim(`  buildOutput:  ${config.buildOutput}`);

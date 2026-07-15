@@ -1,5 +1,6 @@
 import execa from 'execa';
 import { StbConfig } from '../types/index.js';
+import { SshService } from './SshService.js';
 import { spinner, log } from '../utils/logger.js';
 
 export class DeployService {
@@ -16,11 +17,12 @@ export class DeployService {
 
   private async deployWithRsync(): Promise<number> {
     const { user, host, port, buildOutput, remotePath } = this.config;
+    const ssh = new SshService(this.config);
     const src = `${buildOutput}/`;
     const dest = `${user}@${host}:${remotePath}/`;
     const args = [
       '-az', '--delete',
-      '-e', `ssh -p ${port} -o StrictHostKeyChecking=no`,
+      '-e', `${ssh.sshPassCommand()} -p ${port}`,
       src, dest,
     ];
     const start = Date.now();
@@ -29,15 +31,17 @@ export class DeployService {
   }
 
   private async deployWithScp(): Promise<number> {
-    const { user, host, port, buildOutput, remotePath } = this.config;
-    const args = [
+    const { user, host, port, buildOutput, remotePath, password } = this.config;
+    const pass = password ?? '';
+    const scpArgs = [
       '-r', '-P', String(port),
       '-o', 'StrictHostKeyChecking=no',
+      '-o', 'PasswordAuthentication=yes',
       `${buildOutput}/.`,
       `${user}@${host}:${remotePath}/`,
     ];
     const start = Date.now();
-    await execa('scp', args);
+    await execa('sshpass', ['-p', pass, 'scp', ...scpArgs]);
     return Date.now() - start;
   }
 

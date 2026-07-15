@@ -10,15 +10,22 @@ export class SshService {
       '-p', String(this.config.port),
       '-o', 'ConnectTimeout=5',
       '-o', 'StrictHostKeyChecking=no',
-      '-o', 'BatchMode=yes',
+      '-o', 'PasswordAuthentication=yes',
       ...extraArgs,
       `${this.config.user}@${this.config.host}`,
     ];
   }
 
+  // Wraps a command with sshpass when a password is configured
+  private withPass(bin: string, args: string[]): { bin: string; args: string[] } {
+    const pass = this.config.password ?? '';
+    return { bin: 'sshpass', args: ['-p', pass, bin, ...args] };
+  }
+
   async isConnected(): Promise<boolean> {
     try {
-      await execa('ssh', [...this.sshArgs(), 'echo ok'], { timeout: 6000 });
+      const { bin, args } = this.withPass('ssh', [...this.sshArgs(), 'echo ok']);
+      await execa(bin, args, { timeout: 6000 });
       return true;
     } catch {
       return false;
@@ -26,30 +33,33 @@ export class SshService {
   }
 
   async exec(command: string): Promise<string> {
-    const result = await execa('ssh', [...this.sshArgs(), command]);
+    const { bin, args } = this.withPass('ssh', [...this.sshArgs(), command]);
+    const result = await execa(bin, args);
     return result.stdout;
   }
 
   async execTimed(command: string): Promise<{ stdout: string; elapsedMs: number }> {
     const start = Date.now();
-    const result = await execa('ssh', [...this.sshArgs(), command]);
+    const { bin, args } = this.withPass('ssh', [...this.sshArgs(), command]);
+    const result = await execa(bin, args);
     return { stdout: result.stdout, elapsedMs: Date.now() - start };
   }
 
   openShell(): void {
-    const args = [
+    const sshArgs = [
       '-p', String(this.config.port),
       '-o', 'StrictHostKeyChecking=no',
+      '-o', 'PasswordAuthentication=yes',
       `${this.config.user}@${this.config.host}`,
     ];
-    const child = spawn('ssh', args, { stdio: 'inherit' });
+    const { bin, args } = this.withPass('ssh', sshArgs);
+    const child = spawn(bin, args, { stdio: 'inherit' });
     child.on('exit', (code) => process.exit(code ?? 0));
   }
 
   async streamLogs(): Promise<void> {
-    const child = spawn('ssh', [...this.sshArgs(), 'journalctl -f'], {
-      stdio: 'inherit',
-    });
+    const { bin, args } = this.withPass('ssh', [...this.sshArgs(), 'journalctl -f']);
+    const child = spawn(bin, args, { stdio: 'inherit' });
     return new Promise((_, reject) => {
       child.on('error', reject);
       child.on('exit', () => process.exit(0));
@@ -90,5 +100,11 @@ export class SshService {
 
   buildSshCommand(): string {
     return `ssh -p ${this.config.port} ${this.config.user}@${this.config.host}`;
+  }
+
+  // Returns the sshpass ssh command string for rsync -e
+  sshPassCommand(): string {
+    const pass = this.config.password ?? '';
+    return `sshpass -p '${pass}' ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=yes`;
   }
 }
