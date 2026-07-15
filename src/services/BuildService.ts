@@ -28,8 +28,30 @@ export class BuildService {
       sp.succeed(`Build complete`);
       return elapsed;
     } catch (err: unknown) {
+      const execaErr = err as { stderr?: string; stdout?: string; message?: string };
+      const output = `${execaErr.stderr ?? ''} ${execaErr.stdout ?? ''}`;
+      const isHeapError = output.includes('heap out of memory') || output.includes('JavaScript heap');
+
+      if (isHeapError) {
+        sp.text = 'Heap error detected — retrying with increased memory...';
+        try {
+          await execa(cmd, args, {
+            stdio: 'pipe',
+            env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' },
+          });
+          const elapsed = Date.now() - start;
+          sp.succeed('Build complete (with increased memory)');
+          return elapsed;
+        } catch (retryErr: unknown) {
+          sp.fail('Build failed even with increased memory');
+          const retryExecaErr = retryErr as { stderr?: string; stdout?: string };
+          if (retryExecaErr.stderr) log.error(retryExecaErr.stderr);
+          if (retryExecaErr.stdout) log.dim(retryExecaErr.stdout);
+          throw new Error('Build failed — aborting deployment');
+        }
+      }
+
       sp.fail('Build failed');
-      const execaErr = err as { stderr?: string; stdout?: string };
       if (execaErr.stderr) log.error(execaErr.stderr);
       if (execaErr.stdout) log.dim(execaErr.stdout);
       throw new Error('Build failed — aborting deployment');
