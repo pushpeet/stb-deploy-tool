@@ -9,6 +9,9 @@ export class DeployService {
   private async hasRsync(): Promise<boolean> {
     try {
       await execa('which', ['rsync']);
+      // also verify rsync exists on the remote
+      const ssh = new SshService(this.config);
+      await ssh.exec('which rsync');
       return true;
     } catch {
       return false;
