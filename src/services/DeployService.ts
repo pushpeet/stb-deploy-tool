@@ -1,66 +1,30 @@
 import execa from 'execa';
 import { StbConfig } from '../types/index.js';
 import { SshService } from './SshService.js';
-import { spinner, log } from '../utils/logger.js';
+import { spinner } from '../utils/logger.js';
 
 export class DeployService {
   constructor(private readonly config: StbConfig) {}
 
-  private async hasRsync(): Promise<boolean> {
+  private async cleanRemote(): Promise<void> {
+    const sp = spinner('Cleaning remote folder...').start();
     try {
-      await execa('which', ['rsync']);
-      // also verify rsync exists on the remote
       const ssh = new SshService(this.config);
-      await ssh.exec('which rsync');
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  private async deployWithRsync(): Promise<number> {
-    const { user, host, port, buildOutput, remotePath } = this.config;
-    const ssh = new SshService(this.config);
-    const src = `${buildOutput}/`;
-    const dest = `${user}@${host}:${remotePath}/`;
-    const args = [
-      '-az', '--delete',
-      '--progress',
-      '-e', `${ssh.sshPassCommand()} -p ${port}`,
-      src, dest,
-    ];
-
-    const sp = spinner('Uploading to STB... 0%').start();
-    const start = Date.now();
-
-    const child = execa('rsync', args);
-
-    // rsync --info=progress2 writes to stdout, lines look like:
-    //    1,234,567  45%  1.23MB/s    0:00:03
-    child.stdout?.on('data', (chunk: Buffer) => {
-      const line = chunk.toString();
-      const match = line.match(/(\d+)%/);
-      if (match) {
-        sp.text = `Uploading to STB... ${match[1]}%`;
-      }
-    });
-
-    try {
-      await child;
-      sp.succeed('Upload complete — 100%');
+      await ssh.exec(`rm -rf ${this.config.remotePath}/* ${this.config.remotePath}/.[!.]* 2>/dev/null || true`);
+      sp.succeed('Remote folder cleaned');
     } catch (err) {
-      sp.fail('Upload failed');
+      sp.fail('Failed to clean remote folder');
       throw err;
     }
-
-    return Date.now() - start;
   }
 
-  private async deployWithScp(): Promise<number> {
+  async upload(): Promise<number> {
     const { user, host, port, buildOutput, remotePath, password } = this.config;
     const pass = password ?? '';
+    const hasPassword = pass !== '';
 
-    // Count total files first so we can show X/total progress
+    await this.cleanRemote();
+
     const countResult = await execa('find', [buildOutput, '-type', 'f']);
     const totalFiles = countResult.stdout.split('\n').filter(Boolean).length;
 
@@ -70,16 +34,15 @@ export class DeployService {
       '-o', 'PasswordAuthentication=yes',
     ];
 
-    const sp = spinner(`Uploading to STB... 0/${totalFiles} files`).start();
-    const start = Date.now();
-    const hasPassword = pass !== '';
     const dest = `${user}@${host}:${remotePath}/`;
     const scpCmd = hasPassword
       ? `sshpass -p '${pass}' scp ${scpArgs.join(' ')} ${buildOutput}/* ${dest}`
       : `scp ${scpArgs.join(' ')} ${buildOutput}/* ${dest}`;
+
+    const sp = spinner(`Uploading to STB... 0/${totalFiles} files`).start();
+    const start = Date.now();
     const child = execa('sh', ['-c', scpCmd]);
 
-    // scp -v prints "Sending file modes" per file to stderr
     let transferred = 0;
     child.stderr?.on('data', (chunk: Buffer) => {
       const matches = chunk.toString().match(/Sending file modes/g);
@@ -99,28 +62,5 @@ export class DeployService {
     }
 
     return Date.now() - start;
-  }
-
-  private async cleanRemote(): Promise<void> {
-    const sp = spinner('Cleaning remote folder...').start();
-    try {
-      const ssh = new SshService(this.config);
-      await ssh.exec(`rm -rf ${this.config.remotePath}/* ${this.config.remotePath}/.[!.]* 2>/dev/null || true`);
-      sp.succeed('Remote folder cleaned');
-    } catch (err) {
-      sp.fail('Failed to clean remote folder');
-      throw err;
-    }
-  }
-
-  async upload(): Promise<number> {
-    const useRsync = await this.hasRsync();
-    if (!useRsync) {
-      log.warn('rsync not found — falling back to scp');
-      await this.cleanRemote();
-    }
-    return useRsync
-      ? await this.deployWithRsync()
-      : await this.deployWithScp();
   }
 }

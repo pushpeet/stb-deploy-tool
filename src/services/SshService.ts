@@ -105,11 +105,4 @@ export class SshService {
   buildSshCommand(): string {
     return `ssh -p ${this.config.port} ${this.config.user}@${this.config.host}`;
   }
-
-  // Returns the ssh command string for rsync -e, with sshpass only if password is set
-  sshPassCommand(): string {
-    const sshCmd = `ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=yes`;
-    if (!this.hasPassword) return sshCmd;
-    return `sshpass -p '${this.config.password}' ${sshCmd}`;
-  }
 }
