@@ -1,4 +1,5 @@
 import execa from 'execa';
+import * as fs from 'fs-extra';
 import { StbConfig } from '../types/index.js';
 import { SshService } from './SshService.js';
 import { spinner } from '../utils/logger.js';
@@ -23,7 +24,7 @@ export class DeployService {
     const pass = password ?? '';
     const hasPassword = pass !== '';
 
-    if (!await execa('find', [buildOutput, '-maxdepth', '0']).then(() => true).catch(() => false)) {
+    if (!fs.existsSync(buildOutput)) {
       throw new Error(`Build output not found at ${buildOutput}. Run 'stb deploy' first.`);
     }
 
