@@ -68,16 +68,16 @@ export class DeployService {
       '-r', '-O', '-P', String(port),
       '-o', 'StrictHostKeyChecking=no',
       '-o', 'PasswordAuthentication=yes',
-      `${buildOutput}/`,
-      `${user}@${host}:${remotePath}/`,
     ];
 
     const sp = spinner(`Uploading to STB... 0/${totalFiles} files`).start();
     const start = Date.now();
     const hasPassword = pass !== '';
-    const child = hasPassword
-      ? execa('sshpass', ['-p', pass, 'scp', ...scpArgs])
-      : execa('scp', scpArgs);
+    const dest = `${user}@${host}:${remotePath}/`;
+    const scpCmd = hasPassword
+      ? `sshpass -p '${pass}' scp ${scpArgs.join(' ')} ${buildOutput}/* ${dest}`
+      : `scp ${scpArgs.join(' ')} ${buildOutput}/* ${dest}`;
+    const child = execa('sh', ['-c', scpCmd]);
 
     // scp -v prints "Sending file modes" per file to stderr
     let transferred = 0;
