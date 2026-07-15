@@ -68,7 +68,7 @@ export class DeployService {
       '-r', '-O', '-P', String(port),
       '-o', 'StrictHostKeyChecking=no',
       '-o', 'PasswordAuthentication=yes',
-      `${buildOutput}/.`,
+      `${buildOutput}/`,
       `${user}@${host}:${remotePath}/`,
     ];
 
