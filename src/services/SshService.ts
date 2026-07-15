@@ -64,6 +64,15 @@ export class SshService {
   async streamLogs(): Promise<void> {
     const { bin, args } = this.withPass('ssh', [...this.sshArgs(), 'journalctl -f']);
     const child = spawn(bin, args, { stdio: 'inherit' });
+
+    const cleanup = () => {
+      child.kill('SIGTERM');
+      process.exit(0);
+    };
+
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+
     return new Promise((_, reject) => {
       child.on('error', reject);
       child.on('exit', () => process.exit(0));
