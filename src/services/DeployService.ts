@@ -30,8 +30,10 @@ export class DeployService {
 
     await this.cleanRemote();
 
-    const countResult = await execa('find', [buildOutput, '-type', 'f']).catch(() => ({ stdout: '' }));
-    const totalFiles = countResult.stdout.split('\n').filter(Boolean).length;
+    // Calculate total size of build output
+    const duResult = await execa('du', ['-sk', buildOutput]).catch(() => ({ stdout: '0' }));
+    const totalKb = parseInt(duResult.stdout.split('\t')[0], 10) || 0;
+    const totalMb = (totalKb / 1024).toFixed(1);
 
     const scpArgs = [
       '-r', '-O', '-v', '-P', String(port),
@@ -44,23 +46,27 @@ export class DeployService {
       ? `sshpass -p '${pass}' scp ${scpArgs.join(' ')} ${buildOutput}/* ${dest}`
       : `scp ${scpArgs.join(' ')} ${buildOutput}/* ${dest}`;
 
-    const sp = spinner(`Uploading to STB... 0/${totalFiles} files`).start();
+    const sp = spinner(`Uploading to STB... 0.0 MB / ${totalMb} MB (0%)`).start();
     const start = Date.now();
     const child = execa('sh', ['-c', scpCmd]);
 
-    let transferred = 0;
+    let transferredKb = 0;
     child.stderr?.on('data', (chunk: Buffer) => {
-      const matches = chunk.toString().match(/Sending file modes/g);
-      if (matches) {
-        transferred += matches.length;
-        const pct = totalFiles > 0 ? Math.min(100, Math.round((transferred / totalFiles) * 100)) : 0;
-        sp.text = `Uploading to STB... ${transferred}/${totalFiles} files (${pct}%)`;
+      // scp -v outputs file sizes like: Sending file modes: C0644 12345 filename
+      const matches = [...chunk.toString().matchAll(/Sending file modes: \S+ (\d+)/g)];
+      if (matches.length > 0) {
+        for (const match of matches) {
+          transferredKb += parseInt(match[1], 10) / 1024;
+        }
+        const transferredMb = (transferredKb / 1024).toFixed(1);
+        const pct = totalKb > 0 ? Math.min(100, Math.round((transferredKb / totalKb) * 100)) : 0;
+        sp.text = `Uploading to STB... ${transferredMb} MB / ${totalMb} MB (${pct}%)`;
       }
     });
 
     try {
       await child;
-      sp.succeed(`Upload complete — ${totalFiles} files transferred`);
+      sp.succeed(`Upload complete — ${totalMb} MB transferred`);
     } catch (err) {
       sp.fail('Upload failed');
       throw err;
