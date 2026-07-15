@@ -60,7 +60,7 @@ stb deploy        # Full deploy
 |----------------|--------------------------|
 | User           | `root`                   |
 | Port           | `3333`                   |
-| Build Command  | `lng dev`                |
+| Build Command  | `lng dist`               |
 | Build Output   | `dist/es6`               |
 | Remote Path    | `/usr/web/irdeto_app`    |
 | Service        | `residentapp`            |

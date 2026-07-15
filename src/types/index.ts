@@ -29,7 +29,7 @@ export interface DoctorCheck {
 export const DEFAULTS: Omit<StbConfig, 'host'> = {
   user: 'root',
   port: 3333,
-  buildCommand: 'lng dev',
+  buildCommand: 'lng dist',
   buildOutput: 'dist/es6',
   remotePath: '/usr/web/irdeto_app',
   service: 'residentapp',
