@@ -23,9 +23,13 @@ export class DeployService {
     const pass = password ?? '';
     const hasPassword = pass !== '';
 
+    if (!await execa('find', [buildOutput, '-maxdepth', '0']).then(() => true).catch(() => false)) {
+      throw new Error(`Build output not found at ${buildOutput}. Run 'stb deploy' first.`);
+    }
+
     await this.cleanRemote();
 
-    const countResult = await execa('find', [buildOutput, '-type', 'f']);
+    const countResult = await execa('find', [buildOutput, '-type', 'f']).catch(() => ({ stdout: '' }));
     const totalFiles = countResult.stdout.split('\n').filter(Boolean).length;
 
     const scpArgs = [
