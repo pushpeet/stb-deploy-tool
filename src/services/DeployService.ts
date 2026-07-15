@@ -22,17 +22,45 @@ export class DeployService {
     const dest = `${user}@${host}:${remotePath}/`;
     const args = [
       '-az', '--delete',
+      '--info=progress2',
       '-e', `${ssh.sshPassCommand()} -p ${port}`,
       src, dest,
     ];
+
+    const sp = spinner('Uploading to STB... 0%').start();
     const start = Date.now();
-    await execa('rsync', args);
+
+    const child = execa('rsync', args);
+
+    // rsync --info=progress2 writes to stdout, lines look like:
+    //    1,234,567  45%  1.23MB/s    0:00:03
+    child.stdout?.on('data', (chunk: Buffer) => {
+      const line = chunk.toString();
+      const match = line.match(/(\d+)%/);
+      if (match) {
+        sp.text = `Uploading to STB... ${match[1]}%`;
+      }
+    });
+
+    try {
+      await child;
+      sp.succeed('Upload complete — 100%');
+    } catch (err) {
+      sp.fail('Upload failed');
+      throw err;
+    }
+
     return Date.now() - start;
   }
 
   private async deployWithScp(): Promise<number> {
     const { user, host, port, buildOutput, remotePath, password } = this.config;
     const pass = password ?? '';
+
+    // Count total files first so we can show X/total progress
+    const countResult = await execa('find', [buildOutput, '-type', 'f']);
+    const totalFiles = countResult.stdout.split('\n').filter(Boolean).length;
+
     const scpArgs = [
       '-r', '-P', String(port),
       '-o', 'StrictHostKeyChecking=no',
@@ -40,26 +68,41 @@ export class DeployService {
       `${buildOutput}/.`,
       `${user}@${host}:${remotePath}/`,
     ];
-    const start = Date.now();
-    await execa('sshpass', ['-p', pass, 'scp', ...scpArgs]);
-    return Date.now() - start;
-  }
 
-  async upload(): Promise<number> {
-    const sp = spinner('Uploading to STB...').start();
-    try {
-      const useRsync = await this.hasRsync();
-      if (!useRsync) {
-        log.warn('rsync not found — falling back to scp');
+    const sp = spinner(`Uploading to STB... 0/${totalFiles} files`).start();
+    const start = Date.now();
+
+    const child = execa('sshpass', ['-p', pass, 'scp', ...scpArgs]);
+
+    // scp -v prints "Sending file modes" per file to stderr
+    let transferred = 0;
+    child.stderr?.on('data', (chunk: Buffer) => {
+      const matches = chunk.toString().match(/Sending file modes/g);
+      if (matches) {
+        transferred += matches.length;
+        const pct = totalFiles > 0 ? Math.min(100, Math.round((transferred / totalFiles) * 100)) : 0;
+        sp.text = `Uploading to STB... ${transferred}/${totalFiles} files (${pct}%)`;
       }
-      const elapsed = useRsync
-        ? await this.deployWithRsync()
-        : await this.deployWithScp();
-      sp.succeed(`Upload complete`);
-      return elapsed;
+    });
+
+    try {
+      await child;
+      sp.succeed(`Upload complete — ${totalFiles} files transferred`);
     } catch (err) {
       sp.fail('Upload failed');
       throw err;
     }
+
+    return Date.now() - start;
+  }
+
+  async upload(): Promise<number> {
+    const useRsync = await this.hasRsync();
+    if (!useRsync) {
+      log.warn('rsync not found — falling back to scp');
+    }
+    return useRsync
+      ? await this.deployWithRsync()
+      : await this.deployWithScp();
   }
 }
