@@ -71,8 +71,10 @@ export class DeployService {
 
     const sp = spinner(`Uploading to STB... 0/${totalFiles} files`).start();
     const start = Date.now();
-
-    const child = execa('sshpass', ['-p', pass, 'scp', ...scpArgs]);
+    const hasPassword = pass !== '';
+    const child = hasPassword
+      ? execa('sshpass', ['-p', pass, 'scp', ...scpArgs])
+      : execa('scp', scpArgs);
 
     // scp -v prints "Sending file modes" per file to stderr
     let transferred = 0;

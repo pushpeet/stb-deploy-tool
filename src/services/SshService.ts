@@ -5,6 +5,10 @@ import { StbConfig } from '../types/index.js';
 export class SshService {
   constructor(private readonly config: StbConfig) {}
 
+  private get hasPassword(): boolean {
+    return (this.config.password ?? '') !== '';
+  }
+
   private sshArgs(extraArgs: string[] = []): string[] {
     return [
       '-p', String(this.config.port),
@@ -16,10 +20,10 @@ export class SshService {
     ];
   }
 
-  // Wraps a command with sshpass when a password is configured
+  // Only wraps with sshpass when password is non-empty
   private withPass(bin: string, args: string[]): { bin: string; args: string[] } {
-    const pass = this.config.password ?? '';
-    return { bin: 'sshpass', args: ['-p', pass, bin, ...args] };
+    if (!this.hasPassword) return { bin, args };
+    return { bin: 'sshpass', args: ['-p', this.config.password, bin, ...args] };
   }
 
   async isConnected(): Promise<boolean> {
@@ -102,9 +106,10 @@ export class SshService {
     return `ssh -p ${this.config.port} ${this.config.user}@${this.config.host}`;
   }
 
-  // Returns the sshpass ssh command string for rsync -e
+  // Returns the ssh command string for rsync -e, with sshpass only if password is set
   sshPassCommand(): string {
-    const pass = this.config.password ?? '';
-    return `sshpass -p '${pass}' ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=yes`;
+    const sshCmd = `ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=yes`;
+    if (!this.hasPassword) return sshCmd;
+    return `sshpass -p '${this.config.password}' ${sshCmd}`;
   }
 }
