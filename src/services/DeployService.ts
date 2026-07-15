@@ -101,10 +101,23 @@ export class DeployService {
     return Date.now() - start;
   }
 
+  private async cleanRemote(): Promise<void> {
+    const sp = spinner('Cleaning remote folder...').start();
+    try {
+      const ssh = new SshService(this.config);
+      await ssh.exec(`rm -rf ${this.config.remotePath}/* ${this.config.remotePath}/.[!.]* 2>/dev/null || true`);
+      sp.succeed('Remote folder cleaned');
+    } catch (err) {
+      sp.fail('Failed to clean remote folder');
+      throw err;
+    }
+  }
+
   async upload(): Promise<number> {
     const useRsync = await this.hasRsync();
     if (!useRsync) {
       log.warn('rsync not found — falling back to scp');
+      await this.cleanRemote();
     }
     return useRsync
       ? await this.deployWithRsync()
