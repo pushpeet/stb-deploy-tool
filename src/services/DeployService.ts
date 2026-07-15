@@ -22,7 +22,7 @@ export class DeployService {
     const dest = `${user}@${host}:${remotePath}/`;
     const args = [
       '-az', '--delete',
-      '--info=progress2',
+      '--progress',
       '-e', `${ssh.sshPassCommand()} -p ${port}`,
       src, dest,
     ];
