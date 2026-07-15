@@ -63,10 +63,15 @@ export class SshService {
 
   async streamLogs(): Promise<void> {
     const { bin, args } = this.withPass('ssh', [...this.sshArgs(), 'journalctl -f']);
-    const child = spawn(bin, args, { stdio: 'inherit' });
+    const child = spawn(bin, args, { stdio: 'inherit', detached: false });
 
     const cleanup = () => {
-      child.kill('SIGTERM');
+      try {
+        // Kill the entire process group to ensure ssh and journalctl both die
+        process.kill(-child.pid!, 'SIGTERM');
+      } catch {
+        child.kill('SIGKILL');
+      }
       process.exit(0);
     };
 
