@@ -34,7 +34,7 @@ export class DeployService {
     const totalFiles = countResult.stdout.split('\n').filter(Boolean).length;
 
     const scpArgs = [
-      '-r', '-O', '-P', String(port),
+      '-r', '-O', '-v', '-P', String(port),
       '-o', 'StrictHostKeyChecking=no',
       '-o', 'PasswordAuthentication=yes',
     ];
