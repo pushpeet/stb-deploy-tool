@@ -16,6 +16,7 @@ const logs_js_1 = require("./commands/logs.js");
 const status_js_1 = require("./commands/status.js");
 const doctor_js_1 = require("./commands/doctor.js");
 const watch_js_1 = require("./commands/watch.js");
+const discover_js_1 = require("./commands/discover.js");
 const program = new commander_1.Command();
 program
     .name('stb')
@@ -68,6 +69,10 @@ program
     .command('watch')
     .description('Watch source files and auto-deploy on changes')
     .action(wrap(watch_js_1.watchCommand));
+program
+    .command('discover')
+    .description('Auto-discover RDK STBs on the local network')
+    .action(wrap(discover_js_1.discoverCommand));
 program.parse(process.argv);
 function wrap(fn) {
     return () => {

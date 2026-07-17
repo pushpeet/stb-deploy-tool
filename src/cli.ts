@@ -11,6 +11,7 @@ import { logsCommand } from './commands/logs.js';
 import { statusCommand } from './commands/status.js';
 import { doctorCommand } from './commands/doctor.js';
 import { watchCommand } from './commands/watch.js';
+import { discoverCommand } from './commands/discover.js';
 
 const program = new Command();
 
@@ -74,6 +75,11 @@ program
   .command('watch')
   .description('Watch source files and auto-deploy on changes')
   .action(wrap(watchCommand));
+
+program
+  .command('discover')
+  .description('Auto-discover RDK STBs on the local network')
+  .action(wrap(discoverCommand));
 
 program.parse(process.argv);
 
