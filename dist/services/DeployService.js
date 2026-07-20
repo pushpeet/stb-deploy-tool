@@ -50,7 +50,7 @@ class DeployService {
         try {
             const ssh = new SshService_js_1.SshService(this.config);
             await ssh.exec(`rm -rf ${this.config.remotePath}/* ${this.config.remotePath}/.[!.]* 2>/dev/null || true`);
-            sp.succeed('Remote folder cleaned');
+            sp.succeed(`STB ${this.config.remotePath} folder cleaned`);
         }
         catch (err) {
             sp.fail('Failed to clean remote folder');

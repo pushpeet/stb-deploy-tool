@@ -29,8 +29,12 @@ export class BuildService {
       return elapsed;
     } catch (err: unknown) {
       const execaErr = err as { stderr?: string; stdout?: string; message?: string };
-      const output = `${execaErr.stderr ?? ''} ${execaErr.stdout ?? ''}`;
-      const isHeapError = output.includes('heap out of memory') || output.includes('JavaScript heap');
+      const output = `${execaErr.stderr ?? ''} ${execaErr.stdout ?? ''} ${execaErr.message ?? ''}`;
+      const isHeapError =
+        output.includes('heap out of memory') ||
+        output.includes('JavaScript heap') ||
+        output.includes('Allocation failed') ||
+        (err as { signal?: string }).signal === 'SIGABRT';
 
       if (isHeapError) {
         sp.text = 'Heap error detected — retrying with increased memory...';
