@@ -22,8 +22,15 @@ export class BuildService {
     const sp = spinner(`Running ${this.config.buildCommand}...`).start();
     const start = Date.now();
 
+    const buildEnv = {
+      ...process.env,
+      NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=8192']
+        .filter(Boolean)
+        .join(' '),
+    };
+
     try {
-      await execa(cmd, args, { stdio: 'pipe' });
+      await execa(cmd, args, { stdio: 'pipe', env: buildEnv });
       const elapsed = Date.now() - start;
       sp.succeed(`Build complete`);
       return elapsed;
