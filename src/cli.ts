@@ -12,13 +12,14 @@ import { statusCommand } from './commands/status.js';
 import { doctorCommand } from './commands/doctor.js';
 import { watchCommand } from './commands/watch.js';
 import { discoverCommand } from './commands/discover.js';
+import { updateCommand } from './commands/update.js';
 
 const program = new Command();
 
 program
   .name('stb')
   .description('Smart TV/STB deployment CLI for Lightning (lng) projects')
-  .version('1.0.2');
+  .version('1.0.3');
 
 program
   .command('init')
@@ -80,6 +81,11 @@ program
   .command('discover')
   .description('Auto-discover RDK STBs on the local network')
   .action(wrap(discoverCommand));
+
+program
+  .command('update [tag]')
+  .description('Update stb to the latest version (or a specific tag, e.g. v1.0.2)')
+  .action((tag?: string) => wrap(() => updateCommand(tag))());
 
 program.parse(process.argv);
 

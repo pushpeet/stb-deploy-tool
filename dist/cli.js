@@ -17,11 +17,12 @@ const status_js_1 = require("./commands/status.js");
 const doctor_js_1 = require("./commands/doctor.js");
 const watch_js_1 = require("./commands/watch.js");
 const discover_js_1 = require("./commands/discover.js");
+const update_js_1 = require("./commands/update.js");
 const program = new commander_1.Command();
 program
     .name('stb')
     .description('Smart TV/STB deployment CLI for Lightning (lng) projects')
-    .version('1.0.2');
+    .version('1.0.3');
 program
     .command('init')
     .description('Initialize STB config (asks for host/IP)')
@@ -73,6 +74,10 @@ program
     .command('discover')
     .description('Auto-discover RDK STBs on the local network')
     .action(wrap(discover_js_1.discoverCommand));
+program
+    .command('update [tag]')
+    .description('Update stb to the latest version (or a specific tag, e.g. v1.0.2)')
+    .action((tag) => wrap(() => (0, update_js_1.updateCommand)(tag))());
 program.parse(process.argv);
 function wrap(fn) {
     return () => {
