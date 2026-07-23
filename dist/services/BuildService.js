@@ -45,66 +45,66 @@ class BuildService {
         this.config = config;
     }
     async clean() {
-        const sp = (0, logger_js_1.spinner)('Cleaning dist folder...').start();
+        const sp = (0, logger_js_1.spinner)("Cleaning dist folder...").start();
         try {
             await fs.remove(this.config.buildOutput);
-            sp.succeed('Dist folder cleaned');
+            sp.succeed("Dist folder cleaned");
         }
         catch (err) {
-            sp.fail('Failed to clean dist folder');
+            sp.fail("Failed to clean dist folder");
             throw err;
         }
     }
     async build() {
-        const [cmd, ...args] = this.config.buildCommand.split(' ');
+        const [cmd, ...args] = this.config.buildCommand.split(" ");
         const sp = (0, logger_js_1.spinner)(`Running ${this.config.buildCommand}...`).start();
         const start = Date.now();
         const buildEnv = {
             ...process.env,
-            NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=8192']
+            NODE_OPTIONS: [process.env.NODE_OPTIONS, "--max-old-space-size=8192"]
                 .filter(Boolean)
-                .join(' '),
+                .join(" "),
         };
         try {
-            await (0, execa_1.default)(cmd, args, { stdio: 'pipe', env: buildEnv });
+            await (0, execa_1.default)(cmd, args, { stdio: "pipe", env: buildEnv });
             const elapsed = Date.now() - start;
             sp.succeed(`Build complete`);
             return elapsed;
         }
         catch (err) {
             const execaErr = err;
-            const output = `${execaErr.stderr ?? ''} ${execaErr.stdout ?? ''} ${execaErr.message ?? ''}`;
-            const isHeapError = output.includes('heap out of memory') ||
-                output.includes('JavaScript heap') ||
-                output.includes('Allocation failed') ||
-                err.signal === 'SIGABRT';
+            const output = `${execaErr.stderr ?? ""} ${execaErr.stdout ?? ""} ${execaErr.message ?? ""}`;
+            const isHeapError = output.includes("heap out of memory") ||
+                output.includes("JavaScript heap") ||
+                output.includes("Allocation failed") ||
+                err.signal === "SIGABRT";
             if (isHeapError) {
-                sp.text = 'Heap error detected — retrying with increased memory...';
+                sp.text = "Heap error detected — retrying with increased memory...";
                 try {
                     await (0, execa_1.default)(cmd, args, {
-                        stdio: 'pipe',
-                        env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' },
+                        stdio: "pipe",
+                        env: { ...process.env, NODE_OPTIONS: "--max-old-space-size=8192" },
                     });
                     const elapsed = Date.now() - start;
-                    sp.succeed('Build complete (with increased memory)');
+                    sp.succeed("Build complete (with increased memory)");
                     return elapsed;
                 }
                 catch (retryErr) {
-                    sp.fail('Build failed even with increased memory');
+                    sp.fail("Build failed even with increased memory");
                     const retryExecaErr = retryErr;
                     if (retryExecaErr.stderr)
                         logger_js_1.log.error(retryExecaErr.stderr);
                     if (retryExecaErr.stdout)
                         logger_js_1.log.dim(retryExecaErr.stdout);
-                    throw new Error('Build failed — aborting deployment');
+                    throw new Error("Build failed — aborting deployment");
                 }
             }
-            sp.fail('Build failed');
+            sp.fail("Build failed");
             if (execaErr.stderr)
                 logger_js_1.log.error(execaErr.stderr);
             if (execaErr.stdout)
                 logger_js_1.log.dim(execaErr.stdout);
-            throw new Error('Build failed — aborting deployment');
+            throw new Error("Build failed — aborting deployment");
         }
     }
     buildOutputExists() {

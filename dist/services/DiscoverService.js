@@ -49,8 +49,8 @@ function getLocalSubnet() {
     const ifaces = os.networkInterfaces();
     for (const iface of Object.values(ifaces)) {
         for (const addr of iface ?? []) {
-            if (addr.family === 'IPv4' && !addr.internal) {
-                const parts = addr.address.split('.');
+            if (addr.family === "IPv4" && !addr.internal) {
+                const parts = addr.address.split(".");
                 return {
                     hostIp: addr.address,
                     subnet: `${parts[0]}.${parts[1]}.${parts[2]}`,
@@ -66,7 +66,9 @@ function subnetIps(subnet) {
 // ── Step 1: ARP table ────────────────────────────────────────────────────────
 function getArpIps(subnet) {
     try {
-        const out = (0, child_process_1.execSync)('arp -a 2>/dev/null || ip neigh 2>/dev/null', { encoding: 'utf8' });
+        const out = (0, child_process_1.execSync)("arp -a 2>/dev/null || ip neigh 2>/dev/null", {
+            encoding: "utf8",
+        });
         const regex = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/g;
         const matches = out.match(regex) ?? [];
         return [...new Set(matches.filter((ip) => ip.startsWith(subnet)))];
@@ -84,9 +86,9 @@ function tcpProbe(ip, port) {
             resolve(result);
         };
         socket.setTimeout(TCP_TIMEOUT_MS);
-        socket.on('connect', () => done(true));
-        socket.on('timeout', () => done(false));
-        socket.on('error', () => done(false));
+        socket.on("connect", () => done(true));
+        socket.on("timeout", () => done(false));
+        socket.on("error", () => done(false));
         socket.connect(port, ip);
     });
 }
@@ -109,30 +111,37 @@ async function scanIps(ips, port, onProgress) {
 // ── Step 3: SSH verification ─────────────────────────────────────────────────
 async function verifyStb(ip, config) {
     const port = config.port ?? 3333;
-    const user = config.user ?? 'root';
-    const password = config.password ?? '';
-    const hasPassword = password !== '';
+    const user = config.user ?? "root";
+    const password = config.password ?? "";
+    const hasPassword = password !== "";
     const sshArgs = [
-        '-p', String(port),
-        '-o', 'ConnectTimeout=4',
-        '-o', 'StrictHostKeyChecking=no',
-        '-o', 'PasswordAuthentication=yes',
-        '-o', 'BatchMode=no',
+        "-p",
+        String(port),
+        "-o",
+        "ConnectTimeout=4",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "PasswordAuthentication=yes",
+        "-o",
+        "BatchMode=no",
         `${user}@${ip}`,
-        'hostname',
+        "hostname",
     ];
     try {
         let result;
         if (hasPassword) {
-            result = await (0, execa_1.default)('sshpass', ['-p', password, 'ssh', ...sshArgs], { timeout: 6000 });
+            result = await (0, execa_1.default)("sshpass", ["-p", password, "ssh", ...sshArgs], {
+                timeout: 6000,
+            });
         }
         else {
-            result = await (0, execa_1.default)('ssh', sshArgs, { timeout: 6000 });
+            result = await (0, execa_1.default)("ssh", sshArgs, { timeout: 6000 });
         }
-        return { hostname: result.stdout.trim() || ip, verified: true };
+        return { hostname: result.stdout.trim(), verified: true };
     }
     catch {
-        return { hostname: ip, verified: false };
+        return { hostname: "", verified: false };
     }
 }
 // ── Main discovery ────────────────────────────────────────────────────────────
@@ -143,14 +152,14 @@ class DiscoverService {
     async discover(onStatus, onProgress) {
         const net = getLocalSubnet();
         if (!net)
-            throw new Error('Could not detect local network interface.');
+            throw new Error("Could not detect local network interface.");
         onStatus(`Network: ${net.subnet}.0/24`);
         // Step 1 — try ARP first (fast)
         let candidates = getArpIps(net.subnet);
         let usedArp = candidates.length > 0;
         if (!usedArp) {
             // Step 2 — full subnet scan
-            onStatus('ARP table empty — scanning subnet...');
+            onStatus("ARP table empty — scanning subnet...");
             candidates = subnetIps(net.subnet);
         }
         else {
@@ -160,7 +169,7 @@ class DiscoverService {
         const openHosts = await scanIps(candidates, this.config.port ?? 3333, onProgress);
         if (openHosts.length === 0 && usedArp) {
             // ARP gave no results on port 3333 — fall back to full scan
-            onStatus('No results from ARP — falling back to full subnet scan...');
+            onStatus("No results from ARP — falling back to full subnet scan...");
             const allIps = subnetIps(net.subnet);
             const fallback = await scanIps(allIps, this.config.port ?? 3333, onProgress);
             openHosts.push(...fallback);

@@ -43,14 +43,14 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const logger_js_1 = require("../utils/logger.js");
 function loadPkg() {
-    const pkgPath = path.join(__dirname, '..', '..', 'package.json');
-    return JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const pkgPath = path.join(__dirname, "..", "..", "package.json");
+    return JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 }
 function normalizeRepoUrl(repo) {
-    let url = typeof repo === 'string' ? repo : repo?.url ?? '';
-    url = url.replace(/^git\+/, '');
+    let url = typeof repo === "string" ? repo : (repo?.url ?? "");
+    url = url.replace(/^git\+/, "");
     if (!url)
-        throw new Error('Repository URL not found in package.json');
+        throw new Error("Repository URL not found in package.json");
     return url;
 }
 function parseSemver(tag) {
@@ -67,10 +67,15 @@ function compareSemver(a, b) {
     return 0;
 }
 async function latestTag(repoUrl) {
-    const { stdout } = await (0, execa_1.default)('git', ['ls-remote', '--tags', '--refs', repoUrl]);
+    const { stdout } = await (0, execa_1.default)("git", [
+        "ls-remote",
+        "--tags",
+        "--refs",
+        repoUrl,
+    ]);
     let best = null;
-    for (const line of stdout.split('\n')) {
-        const tag = (line.split('/').pop() ?? '').trim();
+    for (const line of stdout.split("\n")) {
+        const tag = (line.split("/").pop() ?? "").trim();
         const ver = parseSemver(tag);
         if (!ver)
             continue;
@@ -83,27 +88,30 @@ async function updateCommand(targetTag) {
     const pkg = loadPkg();
     const current = pkg.version;
     const repoUrl = normalizeRepoUrl(pkg.repository);
-    logger_js_1.log.info(`Current version: ${chalk_1.default.bold('v' + current)}`);
+    logger_js_1.log.info(`Current version: ${chalk_1.default.bold("v" + current)}`);
     let tag = targetTag;
     if (!tag) {
-        const sp = (0, logger_js_1.spinner)('Checking for the latest version...').start();
+        const sp = (0, logger_js_1.spinner)("Checking for the latest version...").start();
         try {
             const latest = await latestTag(repoUrl);
             if (!latest) {
-                sp.fail('Could not find any version tags on the remote');
-                throw new Error('No semver tags found on remote repository');
+                sp.fail("Could not find any version tags on the remote");
+                throw new Error("No semver tags found on remote repository");
             }
             tag = latest;
             sp.succeed(`Latest version: ${chalk_1.default.bold(tag)}`);
         }
         catch (err) {
-            sp.fail('Failed to check the remote for the latest version');
+            sp.fail("Failed to check the remote for the latest version");
             throw err;
         }
     }
     const targetVer = parseSemver(tag);
     const currentVer = parseSemver(current);
-    if (!targetTag && targetVer && currentVer && compareSemver(targetVer, currentVer) <= 0) {
+    if (!targetTag &&
+        targetVer &&
+        currentVer &&
+        compareSemver(targetVer, currentVer) <= 0) {
         logger_js_1.log.success(`Already up to date (v${current}).`);
         return;
     }
@@ -112,16 +120,18 @@ async function updateCommand(targetTag) {
     logger_js_1.log.dim(`  npm install -g ${spec}`);
     logger_js_1.log.blank();
     try {
-        await (0, execa_1.default)('npm', ['install', '-g', '--foreground-scripts', spec], { stdio: 'inherit' });
+        await (0, execa_1.default)("npm", ["install", "-g", "--foreground-scripts", spec], {
+            stdio: "inherit",
+        });
     }
     catch (err) {
         logger_js_1.log.blank();
-        logger_js_1.log.error('Update failed. Try clearing the npm cache and retry (do NOT use sudo):');
-        logger_js_1.log.dim('  npm cache clean --force');
+        logger_js_1.log.error("Update failed. Try clearing the npm cache and retry (do NOT use sudo):");
+        logger_js_1.log.dim("  npm cache clean --force");
         logger_js_1.log.dim(`  npm install -g ${spec}`);
         throw err;
     }
     logger_js_1.log.blank();
-    logger_js_1.log.success(`Updated to ${tag}. Run ${chalk_1.default.bold('stb --version')} to confirm.`);
+    logger_js_1.log.success(`Updated to ${tag}. Run ${chalk_1.default.bold("stb --version")} to confirm.`);
 }
 //# sourceMappingURL=update.js.map

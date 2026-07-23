@@ -1,4 +1,4 @@
-import { StbConfig } from '../types/index.js';
+import { StbConfig } from "../types/index.js";
 export interface DiscoveredDevice {
     ip: string;
     hostname: string;

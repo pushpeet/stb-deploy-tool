@@ -20,32 +20,32 @@ const discover_js_1 = require("./commands/discover.js");
 const update_js_1 = require("./commands/update.js");
 const program = new commander_1.Command();
 program
-    .name('stb')
-    .description('Smart TV/STB deployment CLI for Lightning (lng) projects')
-    .version('1.0.4');
+    .name("stb")
+    .description("Smart TV/STB deployment CLI for Lightning (lng) projects")
+    .version("1.0.5");
 program
-    .command('init')
-    .description('Initialize STB config (asks for host/IP)')
+    .command("init")
+    .description("Initialize STB config (asks for host/IP)")
     .action(wrap(init_js_1.initCommand));
 program
-    .command('host [ip]')
-    .description('Show or update the STB host/IP')
+    .command("host [ip]")
+    .description("Show or update the STB host/IP")
     .action((ip) => wrap(() => (0, host_js_1.hostCommand)(ip))());
 program
-    .command('deploy')
-    .description('Clean, build, upload, and restart service')
+    .command("deploy")
+    .description("Clean, build, upload, and restart service")
     .action(wrap(deploy_js_1.deployCommand));
 program
-    .command('sync')
-    .description('Upload existing build without rebuilding or restarting')
+    .command("sync")
+    .description("Upload existing build without rebuilding or restarting")
     .action(wrap(sync_js_1.syncCommand));
 program
-    .command('restart')
-    .description('Restart the residentapp service on STB')
+    .command("restart")
+    .description("Restart the residentapp service on STB")
     .action(wrap(restart_js_1.restartCommand));
 program
-    .command('ssh')
-    .description('Open an interactive SSH session to the STB')
+    .command("ssh")
+    .description("Open an interactive SSH session to the STB")
     .action(() => {
     try {
         (0, ssh_js_1.sshCommand)();
@@ -55,28 +55,28 @@ program
     }
 });
 program
-    .command('logs')
-    .description('Stream journalctl logs from the STB')
+    .command("logs")
+    .description("Stream journalctl logs from the STB")
     .action(wrap(logs_js_1.logsCommand));
 program
-    .command('status')
-    .description('Show STB connection and project status')
+    .command("status")
+    .description("Show STB connection and project status")
     .action(wrap(status_js_1.statusCommand));
 program
-    .command('doctor')
-    .description('Run health checks on your STB setup')
+    .command("doctor")
+    .description("Run health checks on your STB setup")
     .action(wrap(doctor_js_1.doctorCommand));
 program
-    .command('watch')
-    .description('Watch source files and auto-deploy on changes')
+    .command("watch")
+    .description("Watch source files and auto-deploy on changes")
     .action(wrap(watch_js_1.watchCommand));
 program
-    .command('discover')
-    .description('Auto-discover RDK STBs on the local network')
+    .command("discover")
+    .description("Auto-discover RDK STBs on the local network")
     .action(wrap(discover_js_1.discoverCommand));
 program
-    .command('update [tag]')
-    .description('Update stb to the latest version (or a specific tag, e.g. v1.0.2)')
+    .command("update [tag]")
+    .description("Update stb to the latest version (or a specific tag, e.g. v1.0.2)")
     .action((tag) => wrap(() => (0, update_js_1.updateCommand)(tag))());
 program.parse(process.argv);
 function wrap(fn) {
@@ -86,7 +86,7 @@ function wrap(fn) {
 }
 function handleError(err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(chalk_1.default.red('✖'), message);
+    console.error(chalk_1.default.red("✖"), message);
     process.exit(1);
 }
 //# sourceMappingURL=cli.js.map
