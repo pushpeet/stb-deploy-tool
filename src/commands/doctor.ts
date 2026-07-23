@@ -52,6 +52,15 @@ async function checkRsync(): Promise<DoctorCheck> {
   }
 }
 
+async function checkSshpass(): Promise<DoctorCheck> {
+  try {
+    await execa('which', ['sshpass']);
+    return { name: 'sshpass', status: 'ok', message: 'sshpass available' };
+  } catch {
+    return { name: 'sshpass', status: 'warn', message: 'sshpass not found — needed for password auth (brew install hudochenkov/sshpass/sshpass)' };
+  }
+}
+
 function renderCheck(check: DoctorCheck): void {
   const icon = check.status === 'ok' ? chalk.green('✔') : check.status === 'warn' ? chalk.yellow('⚠') : chalk.red('✖');
   const label = chalk.bold(check.name.padEnd(22));
@@ -73,6 +82,7 @@ export async function doctorCommand(): Promise<void> {
     checkRemotePath(ssh),
     checkService(ssh, config.service),
     checkRsync(),
+    checkSshpass(),
   ]);
 
   checks.forEach(renderCheck);

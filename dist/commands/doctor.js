@@ -86,6 +86,15 @@ async function checkRsync() {
         return { name: 'rsync', status: 'warn', message: 'rsync not found — will fall back to scp' };
     }
 }
+async function checkSshpass() {
+    try {
+        await (0, execa_1.default)('which', ['sshpass']);
+        return { name: 'sshpass', status: 'ok', message: 'sshpass available' };
+    }
+    catch {
+        return { name: 'sshpass', status: 'warn', message: 'sshpass not found — needed for password auth (brew install hudochenkov/sshpass/sshpass)' };
+    }
+}
 function renderCheck(check) {
     const icon = check.status === 'ok' ? chalk_1.default.green('✔') : check.status === 'warn' ? chalk_1.default.yellow('⚠') : chalk_1.default.red('✖');
     const label = chalk_1.default.bold(check.name.padEnd(22));
@@ -104,6 +113,7 @@ async function doctorCommand() {
         checkRemotePath(ssh),
         checkService(ssh, config.service),
         checkRsync(),
+        checkSshpass(),
     ]);
     checks.forEach(renderCheck);
     logger_js_1.log.blank();

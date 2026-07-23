@@ -1,6 +1,6 @@
 {
   "name": "stb-deploy-tool",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Smart TV/STB deployment CLI tool for Lightning (lng) projects",
   "keywords": [
     "stb",
@@ -26,12 +26,14 @@
   "main": "./dist/cli.js",
   "files": [
     "dist/",
+    "scripts/",
     "README.md"
   ],
   "scripts": {
     "build": "tsc && chmod +x dist/cli.js",
     "build:watch": "tsc --watch",
     "dev": "ts-node src/cli.ts",
+    "postinstall": "node scripts/check-requirements.js",
     "prepublishOnly": "npm run build",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"

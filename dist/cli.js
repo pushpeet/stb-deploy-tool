@@ -21,7 +21,7 @@ const program = new commander_1.Command();
 program
     .name('stb')
     .description('Smart TV/STB deployment CLI for Lightning (lng) projects')
-    .version('1.0.1');
+    .version('1.0.2');
 program
     .command('init')
     .description('Initialize STB config (asks for host/IP)')
